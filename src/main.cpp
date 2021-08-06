@@ -22,6 +22,7 @@
 #define SS_PIN  53
 //el sensor de temperatura MLX90614 esta en los pines 20(sda) y 21(scl) pero no hace falta asignarlo
 
+
 TM1637 tm(CLK,DIO);
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 Servo rociador; //objeto del tipo servo para poder manejarlo
@@ -73,19 +74,25 @@ bool verificacionRfid(){
       Serial.print(" "); //imprime un espacio en blanco
     }
     Serial.print(mfrc522.uid.uidByte[i], HEX); //imprime el byte del UID leido en hexadecimal
-    LecturaUID[i]=mfrc522.uid.uidByte[i]; //almacena en array el byte del UID leido      
+    LecturaUID[i]=mfrc522.uid.uidByte[i]; //almacena en array el byte del UID leido   
   }
+  Serial.print("\nTemperatura = ");
+  Serial.print(mlx.readObjectTempC());
+  Serial.println("c");   
   if(comparaUID(LecturaUID, Usuario1)){ //comparaUID con Usuario1
-    Serial.println("\tVerificado");
+    Serial.println("Verificado");
     return true;
   }
   else if(comparaUID(LecturaUID, Usuario2)){ //comparaUID con Usuario2
-    Serial.println("\tVerificado");
+    Serial.println("Verificado");
     return true;
   }
   else{  
-    Serial.println("\tNo Verificado");
+    Serial.println("No Verificado");
+    digitalWrite(ledRojo, HIGH);
     buzzerIncorrecto();
+    delay(1000);
+    digitalWrite(ledRojo, LOW);
     return false;
   }
   mfrc522.PICC_HaltA(); // detiene comunicacion con tarjeta
@@ -132,13 +139,23 @@ void setup() {
 
 void loop() {
   if(deteccionObstaculo()){
-    Serial.println("Abrir puerta salida");
+    Serial.println("\nSale alguien");
+    digitalWrite(cerradura,HIGH);//se abre la cerradura
+    digitalWrite(ledRojo, HIGH);
     buzzerCorrecto();
+    delay(3000);
+    digitalWrite(cerradura,LOW);//se cierra la cerradura
+    digitalWrite(ledRojo, LOW);
   }
+  //Serial.print("Ambiente = ");
+  //Serial.print(mlx.readAmbientTempC());
+  //Serial.print("ºC\tObjeto = ");
+  //Serial.print(mlx.readObjectTempC());
+  //Serial.println("c");
   if(verificacionRfid()){
-    if(mlx.readObjectTempC()<38){
-      buzzerCorrecto();//suena el buzzer
+    if(mlx.readObjectTempC()<30){
       digitalWrite(ledVerde, HIGH);//se prende el led verde
+      buzzerCorrecto();//suena el buzzer
       delay(500);
       tm.display(0,mlx.readObjectTempC()); //se muestra la temp
       rociarAlcohol();//se rocia alcohol
@@ -148,9 +165,9 @@ void loop() {
       digitalWrite(ledVerde, LOW);//se apaga el led verde
       tm.clearDisplay(); //se apaga display
     }
-    else if(mlx.readObjectTempC()>38){
-      buzzerIncorrecto();//suena el buzzer
+    else if(mlx.readObjectTempC()>30){
       digitalWrite(ledRojo, HIGH);//se prende el led rojo
+      buzzerIncorrecto();//suena el buzzer
       tm.display(0,mlx.readObjectTempC());//se muestra la temp
       delay(2000);
       digitalWrite(ledRojo, LOW);//se apaga el led rojo
@@ -158,10 +175,3 @@ void loop() {
     }
   }
 }
-
-
-//Serial.print("Ambiente = ");
-//Serial.print(mlx.readAmbientTempC());
-//Serial.print("ºC\tObjeto = ");
-//Serial.print(mlx.readObjectTempC());
-//Serial.println("c");
