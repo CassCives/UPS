@@ -5,6 +5,7 @@
 #include <Servo.h>
 #include <MFRC522.h>
 #include <Buzzer.h>
+#include <TM1637.h>
 
 //pines 0 y 1 wifi
 #define ledRojo 2 //asignacion pin led rojo
@@ -14,18 +15,14 @@
 #define laser 6 //asignacion pin laser que indica visualmente la posicion del sensor de temperatura al usuario
 //buzzer 7
 #define sensorObstaculo 8 //asignacion pin detector de obstaculos Lm393
+#define CLK 9 //9 y 10 displ
+#define DIO 10
 //pines rfid RST 5 sda 53 mosi 51 miso 50 sck 52
 #define RST_PIN  5
 #define SS_PIN  53
 //el sensor de temperatura MLX90614 esta en los pines 20(sda) y 21(scl) pero no hace falta asignarlo
 
-//pines rfid
-//RST 5
-//sda 53
-//mosi 51
-//miso 50
-//sck 52
-
+TM1637 tm(CLK,DIO);
 Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 Servo rociador; //objeto del tipo servo para poder manejarlo
 Buzzer buzzer(7);// declaracion por libreria de buzzer
@@ -128,6 +125,8 @@ void setup() {
   SPI.begin(); // inicializa bus SPI
   mfrc522.PCD_Init(); // inicializa modulo lector
   mlx.begin(); //iniciacion sensor de temperatura
+  tm.init(); //inicio display
+  tm.set(4); //brillo display
   Serial.begin(9600);
 }
 
@@ -141,19 +140,21 @@ void loop() {
       buzzerCorrecto();//suena el buzzer
       digitalWrite(ledVerde, HIGH);//se prende el led verde
       delay(500);
-      //se muestr la temp
+      tm.display(0,mlx.readObjectTempC()); //se muestra la temp
       rociarAlcohol();//se rocia alcohol
       digitalWrite(cerradura,HIGH);//se abre la cerradura
       delay(3000);
       digitalWrite(cerradura,LOW);//se cierra la cerradura
       digitalWrite(ledVerde, LOW);//se apaga el led verde
+      tm.clearDisplay(); //se apaga display
     }
     else if(mlx.readObjectTempC()>38){
       buzzerIncorrecto();//suena el buzzer
       digitalWrite(ledRojo, HIGH);//se prende el led rojo
-      //se muestra la temp
+      tm.display(0,mlx.readObjectTempC());//se muestra la temp
       delay(2000);
       digitalWrite(ledRojo, LOW);//se apaga el led rojo
+      tm.clearDisplay(); //se apaga display
     }
   }
 }
