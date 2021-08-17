@@ -6,31 +6,27 @@
 #include <MFRC522.h>
 #include <Buzzer.h>
 
-
-///cosas para decidir:
-//funcion del buzzer:si hacerlo funcionar cuando da erroneo luego de probar varias veces o hacerlo cada vez que se abra la puerta
-//angulo servo
-
-Adafruit_MLX90614 mlx = Adafruit_MLX90614();
-
 //pines 0 y 1 wifi
 #define ledRojo 2 //asignacion pin led rojo
 #define ledVerde 3 //asignacion pin led verde
 #define servo 4 //asignacion pin servomotor para rociar alcohol
 #define cerradura 5 //asignacion relay conectado a la cerradura electrica
 #define laser 6 //asignacion pin laser que indica visualmente la posicion del sensor de temperatura al usuario
+//buzzer 7
 #define sensorObstaculo 8 //asignacion pin detector de obstaculos Lm393
-//pines rfid
-#define RST_PIN  5// Pin de reset
-#define SS_PIN  53// Pin de slave select
-//pines del 50 al 53 rfid
+//pines rfid RST 5 sda 53 mosi 51 miso 50 sck 52
+#define RST_PIN  5
+#define SS_PIN  53
 //el sensor de temperatura MLX90614 esta en los pines 20(sda) y 21(scl) pero no hace falta asignarlo
 
+//pines rfid
+//RST 5
+//sda 53
+//mosi 51
+//miso 50
+//sck 52
 
-const int intervaloVerificacion = 2000; //asignacion tiempo de demora si hay verificacon fallida del rfid
-//bool puedeEntrar = false; //variable verificacion entrada rfid
-//bool saleAlguien = false; //variable salida
-//bool temperaturaValida = false; //variable temperatura
+Adafruit_MLX90614 mlx = Adafruit_MLX90614();
 Servo rociador; //objeto del tipo servo para poder manejarlo
 Buzzer buzzer(7);// declaracion por libreria de buzzer
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Objeto mfrc522 enviando pines de slave select y reset
@@ -56,11 +52,11 @@ void buzzerIncorrecto(){
 
 bool comparaUID(byte lectura[],byte usuario[])
 {
-  for (byte i=0; i < 4; i++){    // bucle recorre de a un byte por vez el UID
-  if(lectura[i] != usuario[i])        // si byte de UID leido es distinto a usuario
-    return false;          // retorna falso
+  for (byte i=0; i < 4; i++){ //bucle recorre de a un byte por vez el UID
+  if(lectura[i] != usuario[i]) //si byte de UID leido es distinto a usuario
+    return false;
   }
-  return true;           // si los 4 bytes coinciden retorna verdadero
+  return true;
 }
 
 bool verificacionRfid(){
@@ -72,24 +68,22 @@ bool verificacionRfid(){
     return false;
   }
   Serial.print("UID:");
-  for (byte i = 0; i < 4; i++) { // bucle recorre de a un byte por vez el UID
-    if (mfrc522.uid.uidByte[i] < 0x10){  // si el byte leido es menor a 0x10
-      Serial.print(" 0"); // imprime espacio en blanco y numero cero
+  for (byte i = 0; i < 4; i++) { //bucle recorre de a un byte por vez el UID
+    if (mfrc522.uid.uidByte[i] < 0x10){  //si el byte leido es menor a 0x10
+      Serial.print(" 0"); //imprime espacio en blanco y numero cero
     }
     else{ 
-      Serial.print(" ");  // imprime un espacio en blanco
+      Serial.print(" "); //imprime un espacio en blanco
     }
-    Serial.print(mfrc522.uid.uidByte[i], HEX);    // imprime el byte del UID leido en hexadecimal
-    LecturaUID[i]=mfrc522.uid.uidByte[i];     // almacena en array el byte del UID leido      
+    Serial.print(mfrc522.uid.uidByte[i], HEX); //imprime el byte del UID leido en hexadecimal
+    LecturaUID[i]=mfrc522.uid.uidByte[i]; //almacena en array el byte del UID leido      
   }
-  if(comparaUID(LecturaUID, Usuario1)){    // llama a funcion comparaUID con Usuario1
+  if(comparaUID(LecturaUID, Usuario1)){ //comparaUID con Usuario1
     Serial.println("\tVerificado");
-    buzzerCorrecto();
     return true;
   }
-  else if(comparaUID(LecturaUID, Usuario2)){    // llama a funcion comparaUID con Usuario2
+  else if(comparaUID(LecturaUID, Usuario2)){ //comparaUID con Usuario2
     Serial.println("\tVerificado");
-    buzzerCorrecto();
     return true;
   }
   else{  
@@ -97,11 +91,12 @@ bool verificacionRfid(){
     buzzerIncorrecto();
     return false;
   }
-  mfrc522.PICC_HaltA();  // detiene comunicacion con tarjeta
+  mfrc522.PICC_HaltA(); // detiene comunicacion con tarjeta
 }
 
 bool deteccionObstaculo(){
-  if(digitalRead(sensorObstaculo)==LOW){//cuando el sensor de obstaculo detecta se pone en low y cuando no hay nada en high
+  //cuando el sensor de obstaculo detecta se pone en low y cuando no hay nada en high
+  if(digitalRead(sensorObstaculo)==LOW){
     return true;
   }
   return false;
@@ -128,10 +123,10 @@ void setup() {
   pinMode(ledRojo, OUTPUT);
   pinMode(ledVerde, OUTPUT);
   rociador.attach(servo); //se relaciona la variable del servo con su pin
-  //cerradura
+  pinMode(cerradura, OUTPUT);
   //laser
-  SPI.begin();        // inicializa bus SPI
-  mfrc522.PCD_Init();     // inicializa modulo lector
+  SPI.begin(); // inicializa bus SPI
+  mfrc522.PCD_Init(); // inicializa modulo lector
   mlx.begin(); //iniciacion sensor de temperatura
   Serial.begin(9600);
 }
@@ -139,23 +134,26 @@ void setup() {
 void loop() {
   if(deteccionObstaculo()){
     Serial.println("Abrir puerta salida");
+    buzzerCorrecto();
   }
   if(verificacionRfid()){
     if(mlx.readObjectTempC()<38){
-      //suena el buzzer
+      buzzerCorrecto();//suena el buzzer
       digitalWrite(ledVerde, HIGH);//se prende el led verde
       delay(500);
       //se muestr la temp
       rociarAlcohol();//se rocia alcohol
-      //se abre la cerradura
+      digitalWrite(cerradura,HIGH);//se abre la cerradura
+      delay(3000);
+      digitalWrite(cerradura,LOW);//se cierra la cerradura
       digitalWrite(ledVerde, LOW);//se apaga el led verde
     }
     else if(mlx.readObjectTempC()>38){
-      //suena el buzzer
-      digitalWrite(ledRojo, HIGH);
+      buzzerIncorrecto();//suena el buzzer
+      digitalWrite(ledRojo, HIGH);//se prende el led rojo
       //se muestra la temp
       delay(2000);
-      digitalWrite(ledRojo, LOW);
+      digitalWrite(ledRojo, LOW);//se apaga el led rojo
     }
   }
 }
