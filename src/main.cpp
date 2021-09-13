@@ -6,15 +6,16 @@
 #include <MFRC522.h>
 #include <Buzzer.h>
 #include <TM1637.h>
+#include <WiFiEsp.h>
 
-//pines 0 y 1 wifi
+//pines wifi tx 19 en 3,3v rx 18
 #define ledRojo 2 //asignacion pin led rojo
 #define ledVerde 3 //asignacion pin led verde
 #define servo 4 //asignacion pin servomotor para rociar alcohol
 #define cerradura 5 //asignacion relay conectado a la cerradura electrica
 #define laser 6 //asignacion pin laser que indica visualmente la posicion del sensor de temperatura al usuario
-//buzzer 7
-#define sensorObstaculo 8 //asignacion pin detector de obstaculos Lm393
+//buzzer 7 y gnd
+#define sensorObstaculo 8 //asignacion pin detector de obstaculos Lm393 5v y gnd
 #define CLK 9 //9 y 10 displ
 #define DIO 10
 //pines rfid RST 5 sda 53 mosi 51 miso 50 sck 52
@@ -139,7 +140,7 @@ void setup() {
 
 void loop() {
   if(deteccionObstaculo()){
-    Serial.println("\nSale alguien");
+    Serial.println("Sale alguien");
     digitalWrite(cerradura,HIGH);//se abre la cerradura
     digitalWrite(ledRojo, HIGH);
     buzzerCorrecto();
